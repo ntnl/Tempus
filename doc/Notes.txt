@@ -1,0 +1,80 @@
+
+    === Tempus scheduler project ===
+
+    "tempus fugit, aeternitas manet"
+
+    (czas ucieka, wieczność pozostaje)
+
+    === Idea ===
+
+    === Main configuration file ===
+
+array:
+    id: O
+    content: exec://bar.pl
+    refresh: 00 00 00 * * *
+        # format: (absolute)
+        #   ss mm hh DD MM WW
+        # where:
+        #   ss = seconds
+        #   mm = minutes
+        #   hh = hour
+        #   DD = day
+        #   MM = month
+        #   WW = weekday
+        #
+        # format: (relative)
+        #   +iiu
+        # where:
+        #   ii = integer number
+        #   u  = unit (seconds being the default)
+
+script:
+    id: foo
+    command: foo.sh --verbose --object $O
+    schedule: 00 00 10 * * *
+
+array:
+    id: P
+    content: file:///etc/properties.txt
+    refresh: 00 00 * * * *
+
+variable:
+    id: DATE
+    content: exec://date +%F
+
+script:
+    id: bar
+    command: bar.pl --test --object $O --property $P
+    requires: foo
+    schedule: 15 10 12 * * *
+    user: guest
+    skipped: rerun
+        # rerun | ignore | error
+    max_delay: 25m
+    delayed: force
+        # force | error
+    max_threads: 5
+        # Run no more then n copies of the script at the same time.
+
+    === Script execution rules ===
+
+1) A script is run when two conditions are met:
+    a) it is scheduled ('schedule' parameter)
+    b) it's dependencies had been executed ('requires' parameter)
+
+2) Script is considered 'skipped' when script is scheduled n-th time,
+while it's dependencies ware not met.
+Such situation can be ignored, scheduled for later execution, or an error
+message can be sent.
+
+3) Script is considered 'delayed' when script is scheduled, but it's
+dependencies ware not met for configured amount of time ('max_delay' parameter).
+Such script can be run (ignoring it's dependencies) or an error message
+can be sent.
+
+    === Load distribution and balancing ===
+
+Tempus will support distributed execution of scripts by using a gearman-based wrapper,
+that will lunch tasks on remote machines.
+
